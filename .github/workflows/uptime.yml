@@ -1,0 +1,34 @@
+name: OON uptime
+
+# Her 5 dakikada üretim API'sinin hazır olduğunu dener. Başarısız iş = GitHub e-posta bildirimi
+# (zamanlanmış işlerde bildirim, cron'u son değiştiren hesaba gider).
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  api-ready:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: api.oonhealth.com/health/ready
+        run: |
+          set -u
+          for deneme in 1 2 3; do
+            kod=$(curl -sS -o body.json -w '%{http_code}' --max-time 15 https://api.oonhealth.com/health/ready || echo 000)
+            if [ "$kod" = "200" ] && grep -q '"ok":true' body.json; then
+              echo "hazır (deneme $deneme)"; exit 0
+            fi
+            echo "deneme $deneme: HTTP $kod"; sleep 20
+          done
+          echo "::error::api.oonhealth.com/health/ready 3 denemede hazır değil"
+          head -c 400 body.json 2>/dev/null || true
+          exit 1

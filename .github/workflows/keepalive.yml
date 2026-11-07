@@ -1,0 +1,22 @@
+name: keepalive
+
+# GitHub, 60 gün commit almayan herkese açık depolarda zamanlanmış işleri kapatır. Ayda bir tarih dosyası güncellenir.
+on:
+  schedule:
+    - cron: '17 6 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          date -u +%Y-%m-%dT%H:%M:%SZ > .keepalive
+          git config user.name "oon-uptime"
+          git config user.email "oon-uptime@users.noreply.github.com"
+          git add .keepalive
+          git commit -m "keepalive" && git push
